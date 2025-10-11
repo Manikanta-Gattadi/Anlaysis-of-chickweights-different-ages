@@ -1,0 +1,63 @@
+# Load necessary libraries 
+library(dplyr) 
+library(ggplot2) 
+library(forecast) 
+# Load the ChickWeight dataset 
+data("ChickWeight") 
+head(ChickWeight) 
+# Summary statistics for weight by Diet 
+summary_stats <- ChickWeight %>% 
+group_by(Diet) %>% 
+summarise( 
+Mean_Weight = mean(weight), 
+Median_Weight = median(weight), 
+SD_Weight = sd(weight), 
+Min_Weight = min(weight), 
+Max_Weight = max(weight) 
+) 
+print(summary_stats) 
+# Boxplot for weight distribution by Diet 
+ggplot(ChickWeight, aes(x = factor(Diet), y = weight, fill = factor(Diet))) + 
+geom_boxplot() + 
+labs(title = "Boxplot of Chick Weights by Diet", x = "Diet", y = "Weight") + 
+theme_minimal() 
+# Line plot of weight over age for each Diet 
+ggplot(ChickWeight, aes(x = Time, y = weight, color = factor(Diet), group = Chick)) + 
+geom_line(alpha = 0.6) + 
+stat_smooth(aes(group = Diet), method = "loess", se = FALSE, size = 1.2) + 
+labs(title = "Chick Weight Growth over Time by Diet", x = "Age (Days)", y = 
+"Weight") + 
+theme_minimal() 
+# Linear model: Weight ~ Age for each Diet 
+linear_models <- ChickWeight %>% 
+group_by(Diet) %>% 
+do(model = lm(weight ~ Time, data = .)) 
+# Summary of models 
+linear_models$model[[1]] %>% summary()  # For Diet 1 
+linear_models$model[[2]] %>% summary()  # For Diet 2 
+linear_models$model[[3]] %>% summary()  # For Diet 3 
+linear_models$model[[4]] %>% summary()  # For Diet 4 
+# Plot linear trend for each Diet 
+ggplot(ChickWeight, aes(x = Time, y = weight, color = factor(Diet))) + 
+geom_point(alpha = 0.6) + 
+geom_smooth(method = "lm", se = FALSE) + 
+labs(title = "Linear Trend of Chick Weight by Diet", x = "Age (Days)", y = "Weight") + 
+theme_minimal() 
+# Optional: Exponential trend modeling 
+# Using log transformation for exponential fitting: log(weight) ~ Time 
+exp_models <- ChickWeight %>% 
+group_by(Diet) %>% 
+do(model = lm(log(weight) ~ Time, data = .)) 
+# Residuals from Diet 1 linear model 
+residuals_d1 <- residuals(linear_models$model[[1]]) 
+# Plot residuals 
+plot(ChickWeight$Time[ChickWeight$Diet == 1], residuals_d1, 
+main = "Residual Plot for Diet 1", 
+xlab = "Age (Days)", ylab = "Residuals") 
+abline(h = 0, col = "red", lwd = 2) 
+# Q-Q plot for residual normality 
+qqnorm(residuals_d1) 
+qqline(residuals_d1, col = "blue", lwd = 2) 
+# Durbin-Watson test for autocorrelation 
+library(lmtest) 
+dwtest(linear_models$model[[1]])  # For Diet 1
